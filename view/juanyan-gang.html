@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+		<link href="../css/mui.min.css" rel="stylesheet" />
+		<link rel="stylesheet" href="../css/mui.picker.css" />
+		<link rel="stylesheet" type="text/css" href="../css/mui.poppicker.css"/>
+		<link rel="stylesheet" type="text/css" href="../css/selectKuwei.css"/>
+		<style>
+			ul {
+				font-size: 14px;
+				color: #8f8f94;
+			}
+			.rukumingxi,.sumInfo{
+				margin: 1rem 0 1rem 0.9rem;
+			}
+		</style>
+	</head>
+
+	<body>
+		<header class="mui-bar mui-bar-nav" style="padding-right: 15px;">
+			<button type="button" class="mui-left mui-action-back mui-btn  mui-btn-link mui-btn-nav mui-pull-left">
+				<span class="mui-icon mui-icon-left-nav"></span>
+			</button>
+			<h1 class="mui-title">卷验-按缸</h1>
+			<button class=" mui-pull-right mui-btn-link"><span class="mui-icon mui-icon-redo"></span></button>
+		</header>
+		<div class="mui-content">
+			<form class="mui-input-group">
+			    <div class="mui-input-row">
+			        <label>入库日期</label>
+			    	<input type="date" class="mui-input-clear" name="rukuDate" id="rukuDate">
+			    </div>
+			    <div class="mui-input-row">
+			        <label>仓库类别</label>
+			        <input type="text" class="mui-input-clear" id="cangkuId"  placeholder="请选择仓库">
+			        <input type="hidden"  id="kuweiId" name="kuweiId" value="">
+			    </div>
+			    <div class="mui-input-row">
+			        <label>库位</label>
+			        <input type="text" class="" id="kuquIds" placeholder="请选择库位">
+			        <input type="hidden" name="kuquId" id="kuquId" />
+			        <span class="mui-icon mui-icon-plus-filled" id="mui-icon-plus-filled"></span>
+					<input type="hidden" name="ganghao" id="ganghao" value=""/>
+			    </div>
+				<div class="mui-input-row">
+					<label>备注</label>
+					<input type="text" class="mui-input-clear" name="memo" id="memo">
+				</div>
+				<div class="mui-input-row">
+					<label>条码</label>
+					<input type="text" class="mui-input-clear" name="juanhao" id="juanhao" value=""/>
+				</div>
+			    <div class="mui-input-row">
+			    	<label>入库信息</label>
+			    </div>
+				<div id="rukuData">
+					<ul class="mui-table-view">
+						
+					</ul>
+				</div>
+				<div class="mui-input-row1">
+					<div class="sumInfo">
+						入库重量 <span id="cangkuWeight">0</span> ,入库长度 <span id="cagnkulength">0</span> ,卷数  <span id="cangkujuan">0</span>
+					</div>
+			    </div>
+			    <div class="mui-button-row">
+			        <button type="button" class="mui-btn mui-btn-primary" id="submit">确认入库</button>
+			    </div>
+			</form>
+		</div>
+		<script src="../config.js"></script>
+		<script src="../js/mui.js"></script>
+		<script type="text/javascript" src="../js/mui.picker.js"></script>
+		<script type="text/javascript" src="../js/mui.poppicker.js"></script>
+		<script type="text/javascript" src="../js/jquery.1.9.1.js"></script>
+		<script src="../js/app.js"></script>
+		<script>
+			mui.init();
+			listenDelete(calSum);
+			var picker = new mui.PopPicker();
+			var table = document.body.querySelector('.mui-table-view');
+            document.getElementById('juanhao').addEventListener('keypress',function(e){
+	        	if(e.keyCode==13){
+	        		var juanhao=this.value.substr(0,this.value.length-1);
+					var juanArr=juanhao.split(',');
+					var len=juanArr.length;
+					var result=juanArr[len-1];
+					juanArr.pop();
+					var index=$.inArray(result,juanArr);
+					if(index>=0){
+						mui.alert('该布卷已扫描');
+						this.value=juanArr.join(',')+',';
+						return ;
+					}
+					var data=getGangData(result);
+					if(data){
+						doCodeData(data);
+					}
+	        	}
+		    });
+			 document.querySelector("#submit").addEventListener("tap",function(){
+				var rukuDate=document.getElementById('rukuDate').value;
+				var kuweiId=document.getElementById('kuweiId').value;
+				var kuquId=document.getElementById('kuquId').value;
+				var memo=document.getElementById('memo').value;
+				var li=table.getElementsByClassName('mui-table-view-cell');
+				var checkIdArr=[];
+				for (var i=0;i<li.length;i++) {
+					checkIdArr.push(li[i].getAttribute('id'));
+				}
+				var checkId=checkIdArr.join(',');
+	         	var submitinfo={rukuDate:rukuDate,kuweiId:kuweiId,kuquId:kuquId,checkId:checkId,memo:memo};
+				checkSaveByGang(submitinfo, function(err) {
+					if (err) {
+						plus.nativeUI.toast(err);
+						return;
+					}
+				});
+			 });
+			mui.plusReady(function(){
+				initdate('rukuDate');
+				selectCangku();
+				selectKuwei();
+				showKuweiName();
+				cangkuData=getMlCangkuByUser('验布入库');
+			});
+			function doCodeData(data)
+			{
+				mui.each(data, function(index, item) {
+					if(!index){
+						var result=item.c5;
+						var ganghao=document.getElementById('ganghao').value;
+						var gangArr=ganghao.split(',');
+						var isset=$.inArray(result,gangArr);
+						if(isset>=0){
+							mui.alert('该缸号已扫描');
+							return false;
+						}
+						document.getElementById('ganghao').value=ganghao+result+',';
+					}
+					var str = '';
+					str += '<div class="mui-slider-right mui-disabled"><a class="mui-btn mui-btn-red">删除</a></div>';
+					str += '<div class="mui-slider-handle">条码：'+item.orderId+'-'+item.checkId+',缸号:'+item.c5+',卷号:'+item.checkId+',长度：<span class="length">'+item.length+'</span>，重量：<span class="weight">'+item.weight+'</span></div>';
+					var li = document.createElement('li');
+					li.className = 'mui-table-view-cell';
+					li.id=item.id;
+					li.innerHTML = str;
+					table.appendChild(li);
+				});
+				calSum();
+			}
+			function calSum(){
+				var handle=table.getElementsByClassName('mui-slider-handle');
+				var sumlength=0;
+				var sumweight=0;
+				for (var i=0;i<handle.length;i++) {
+					var lilength=handle[i].getElementsByClassName('length')[0].innerHTML;
+					sumlength=parseFloat(lilength)+sumlength;
+					var liweight=handle[i].getElementsByClassName('weight')[0].innerHTML;
+					sumweight=parseFloat(liweight)+sumweight;
+				}
+				document.getElementById('cangkuWeight').innerHTML=sumweight.toFixed(2);
+				document.getElementById('cagnkulength').innerHTML=sumlength.toFixed(2);
+				document.getElementById('cangkujuan').innerHTML=handle.length;
+			}
+		</script>
+	</body>
+
+</html>
